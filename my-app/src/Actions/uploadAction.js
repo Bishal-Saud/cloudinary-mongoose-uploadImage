@@ -83,14 +83,21 @@ export default async function uploadPhoto(formData) {
 
 export async function getAllPhotos() {
   try {
-    const { resources } = await cloudinary.v2.search
-      .expression("folder:nextjs_upload/*")
-      .sort_by("created_at", "desc")
-      .max_results(500)
-      .execute();
+    // From Cloudinary
+    // const { resources } = await cloudinary.v2.search
+    //   .expression("folder:nextjs_upload/*")
+    //   .sort_by("created_at", "desc")
+    //   .max_results(500)
+    //   .execute();
 
-    // console.log(resources);
-    // console.log(resources);
+    // From mongodb
+    const photos = await Photo.find().sort("-createdAt");
+
+    const resources = photos.map((photo) => ({
+      ...photo._doc,
+      _id: photo._id.toString(),
+    }));
+
     return resources;
   } catch (error) {
     return { errMsg: error.message };
@@ -98,6 +105,7 @@ export async function getAllPhotos() {
 }
 export async function deletePhoto(public_id) {
   try {
+    await Promise.all([Photo.findOneAndDelete({ public_id })]);
     await cloudinary.v2.uploader.destroy(public_id);
     revalidatePath("/");
     return { msg: "successfully deleted" };
